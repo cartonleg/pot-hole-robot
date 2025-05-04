@@ -21,21 +21,21 @@ class ProcessController(BaseController):
                     "bounding_box": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
                     "confidence": conf
                 })
-            return JSONResponse(content={
+            return {
                 "status": "success",
                 "message": "Potholes detected",
                 "detections": detections,
                 "count": len(detections)
-            })
+            }
         elif len(results[0].boxes) <= 0:
-            return JSONResponse(content={
+            return {
                 "status": "success",
                 "message": "No potholes detected",
                 "detections": [],
                 "count": 0
-            })
-        return JSONResponse(content={
+            }
+        return {
             "status": "fail",
-            "message": ResponseEnums.IMAGE_PROCESS_FAIL.value})
+            "message": ResponseEnums.IMAGE_PROCESS_FAIL.value}
         
         
