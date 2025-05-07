@@ -26,16 +26,16 @@ class ProcessController(BaseController):
             tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
             cv2.imwrite(tmp.name, result_annotated) 
 
-            return FileResponse(tmp.name, media_type="image/jpeg")
+            return tmp.name
 
         elif len(result[0].boxes) <= 0:
 
             image_path = os.path.join(self.root_dir, 'assets', 'images', 'not_pot_hole_detected.png')
 
-            return FileResponse(image_path, media_type="image/jpeg")
+            return image_path
         
 
         image_path = os.path.join(self.root_dir, 'assets', 'images', 'error_while_detecting.png')
-        return FileResponse(image_path, media_type="image/jpeg")
+        return image_path
         
         
