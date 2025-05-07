@@ -6,10 +6,13 @@ import io
 from PIL import Image
 import tempfile
 import cv2
+import os
 
 class ProcessController(BaseController):
     def __init__(self):
         super().__init__()
+        self.current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.root_dir = os.path.dirname(self.current_dir)
         
     def detect_pothole_in_image(self, image, weights, confidence:float = 0.2):
         model = YOLO(weights)
@@ -26,15 +29,13 @@ class ProcessController(BaseController):
             return FileResponse(tmp.name, media_type="image/jpeg")
 
         elif len(result[0].boxes) <= 0:
-            return {
-                "status": "success",
-                "message": "No potholes detected",
-                "detections": [],
-                "count": 0
-            }
+
+            image_path = os.path.join(self.root_dir, 'assets', 'images', 'not_pot_hole_detected.png')
+
+            return FileResponse(image_path, media_type="image/jpeg")
         
-        return {
-            "status": "fail",
-            "message": ResponseEnums.IMAGE_PROCESS_FAIL.value}
+
+        image_path = os.path.join(self.root_dir, 'assets', 'images', 'error_while_detecting.png')
+        return FileResponse(image_path, media_type="image/jpeg")
         
         
