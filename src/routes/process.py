@@ -1,39 +1,57 @@
-from fastapi import APIRouter, Request, UploadFile, Depends
+from fastapi import APIRouter, UploadFile, Depends
+from fastapi.responses import FileResponse
 from helpers.config import Settings, get_settings
 from controllers.ProcessController import ProcessController
 from typing import List
 import os
 import shutil
-import uuid
+from zipfile import ZipFile
+import tempfile
 
 process_router = APIRouter(prefix='/process')
 
 @process_router.post('/image')
-async def upload_image(uploaded_image: UploadFile, 
+async def upload_image(uploaded_images: List[UploadFile], 
                        app_settings:Settings = Depends(get_settings)):
     
 
-    
-    file_ext = os.path.splitext(uploaded_image.filename)[-1]
-    temp_filename = f"{uuid.uuid4()}{file_ext}"
-    temp_filepath = os.path.join("/tmp", temp_filename)
-    
     current_dir = os.path.dirname(os.path.abspath(__file__))
     model_path = os.path.join(current_dir, '..', 'assets', 'models', 'pothole_segmentation_model_YOLOv8.pt')
     model_path = os.path.abspath(model_path)
 
-    try:
-        with open(temp_filepath, "wb") as buffer:
-            shutil.copyfileobj(uploaded_image.file, buffer)
+    result_paths = []
 
-        result = ProcessController().detect_pothole_in_image(
-            image=temp_filepath,
-            weights=model_path,
-            confidence=app_settings.CONFIDENCE
-        )
+    for uploaded_image in uploaded_images:
+
+        file_ext = os.path.splitext(uploaded_image.filename)[-1]
+        temp_filepath = tempfile.NamedTemporaryFile(suffix=file_ext, delete=False)
         
-        return result
 
-    finally:
-        if os.path.exists(temp_filepath):
-            os.remove(temp_filepath)
+        try:
+            with open(temp_filepath.name, "wb") as buffer:
+                shutil.copyfileobj(uploaded_image.file, buffer)
+
+            processed_image_path = ProcessController().detect_pothole_in_image(
+                image=temp_filepath.name,
+                weights=model_path,
+                confidence=app_settings.CONFIDENCE
+            )
+            
+            result_paths.append(processed_image_path)
+
+        finally:
+            if os.path.exists(temp_filepath.name):
+                os.remove(temp_filepath.name)
+    
+    zip_tmp = tempfile.NamedTemporaryFile(suffix='.zip', delete=False)
+    with ZipFile(zip_tmp.name, 'w') as zipf:
+        for path in result_paths:
+            arcname = os.path.basename(path)
+            zipf.write(filename=path, arcname=arcname)
+            if os.path.exists(path):
+                os.remove(path)
+    
+    return FileResponse(path=zip_tmp.name,
+                        media_type='application/zip',
+                        filename='processed_images.zip')
+
