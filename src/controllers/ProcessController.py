@@ -2,6 +2,7 @@ from fastapi.responses import JSONResponse
 from ultralytics import YOLO
 from controllers.BaseController import BaseController
 from models.enums import ResponseEnums
+from datetime import datetime
 
 class ProcessController(BaseController):
     def __init__(self):
@@ -25,14 +26,16 @@ class ProcessController(BaseController):
                 "status": "success",
                 "message": "Potholes detected",
                 "detections": detections,
-                "count": len(detections)
+                "count": len(detections),
+                "date-time": datetime.now()
             }
         elif len(results[0].boxes) <= 0:
             return {
                 "status": "success",
                 "message": "No potholes detected",
                 "detections": [],
-                "count": 0
+                "count": 0,
+                "date-time": datetime.now()
             }
         return {
             "status": "fail",
